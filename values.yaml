@@ -1,0 +1,195 @@
+## Default values for the temporary-contents Helm chart.
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
+
+## Log level (debug|info|warn|error)
+logLevel: info
+
+## endpoint to reach the feature-flags
+featureFlagsURI: http://{{ .Release.Name }}-feature-flags:8080
+
+## Authentication configurations.
+##
+auth:
+  # toggle JWT validation using retrieved keys from the configured JWKS endpoint
+  enabled: true
+  ## URI where the JWKS to validate JWTs is located
+  jwksURI: "http://{{ .Release.Name }}-keys:8080/v1/keys/qlik.api.internal"
+  # expected `audience` value within the JWT claims
+  jwtAud: qlik.api.internal
+  # expected `issuer` value within the JWT claims
+  jwtIss: qlik.api.internal
+
+## Access control configurations.
+##
+accessControl:
+  ## toggle PDS access control communication
+  enabled: true
+  ## URL where the PDS is located
+  url: "http://{{ .Release.Name }}-policy-decisions:5080"
+  ## For localdev use this configuration instead
+  # url: "http://policy-decisions:5080"
+
+## Encryption service configurations.
+##
+encryption:
+  ## toggle encryption service communication
+  enabled: true
+  ## URL where the encryption service is located
+  url: "http://{{ .Release.Name }}-encryption:8080"
+  ## For localdev use this configuration instead
+  # url: "http://encryption:8080"
+
+## Token Authentication configurations.
+##
+tokenAuth:
+  enabled: true
+  privateKey: |
+    -----BEGIN EC PRIVATE KEY-----
+    MIGkAgEBBDACC8nAwmWgM7ozTUo3Kjsl6O5qbEj3OuXvF7BMbPirgevah1fuUs2l
+    9xxOoQIMolugBwYFK4EEACKhZANiAAQOvV5QDwOi+osbqHWvOQTK5ShTaee5A/qm
+    hKDg8pjHtKQLbCBaneu7YE4asIUYur47b17pkpTG9Xn9s4JMvzO685cKS90D4MiA
+    tneIX5FJz3VRnGdTih0yMPC9fAqdsrI=
+    -----END EC PRIVATE KEY-----
+  kid: "ckZJbjOzS1zWHMV8XqX5Q_YKWx2A4FIuGM-Ac8PF4aA"
+  url: "http://{{ .Release.Name }}-edge-auth:8080/v1/internal-tokens"
+  ## For localdev use this configuration instead
+  # url: "http://edge-auth:8080/v1/internal-tokens"
+
+image:
+  ## Default registry where this repository should be pulled from. Will be overridden by `global.imageRegistry` if set
+  registry: qliktech-docker.jfrog.io
+  ## Temporary-contents image.
+  repository: temporary-contents
+  ## Temporary-contents image version.
+  ## ref: https://hub.docker.com/r/qlik/temporary-contents/tags/
+  tag: 1.2.0
+
+  ## Specify a imagePullPolicy: 'Always' if imageTag is 'latest', else set to 'IfNotPresent'.
+  ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  ##
+  # pullPolicy:
+
+## Secrets for pulling images from a private docker registry.
+##
+imagePullSecrets:
+  - name: artifactory-docker-secret
+
+## Persistence configuration
+##
+persistence:
+  enabled: true
+
+  ## Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+
+  ## Persistence access mode
+  ## https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes-1
+  ## This is required for temporary-contents to have multiple replicas
+  accessMode: ReadWriteMany
+
+  ## Persistence volume default size
+  size: 5Gi
+
+  ## To enable an externally defined persistent volume claim set the name of the claim.
+  ## If configured this chart will not create a persistent volume claim.
+  # existingClaim:
+
+  internalStorageClass:
+    ## Normally the storage class should be created outside this helm chart
+    ## If we want to deploy a storage class as part of the helm chart
+    ## - Provide a storageClassName above.
+    ## - set enabled true
+    ## - provide a storage class definition.
+
+    ## If enabled storage class will be configured as part of the chart.
+    ## If not enabled an external storageclass can be used by providing storageClassName above.
+    enabled: false
+
+    ## Storageclass definition
+    definition: {}
+    ## Storage classes have a provisioner that determines what volume plugin is used for provisioning PVs.
+    ## This field must be specified.
+    ## See https://kubernetes.io/docs/concepts/storage/storage-classes/
+    #  provisioner: kubernetes.io/no-provisioner
+    ## Reclaim policy should normally be set to Retain to avoid loosing data when deleting this helm chart.
+    # reclaimPolicy: Retain
+    ## Persistent Volumes that are dynamically created by a storage class will have the mount options specified
+    ## in the mountOptions field of the class.
+    #  mountOptions: {}
+    ## Storage classes have parameters that describe volumes belonging to the storage class.
+    ## Different parameters may be accepted depending on the provisioner.
+    #  parameters: {}
+
+## Number of replicas.
+##
+replicaCount: 1
+
+## Number of seconds to wait during pod termination after sending SIGTERM until SIGKILL.
+##
+terminationGracePeriodSeconds: 30
+
+## Service configuration.
+## ref: https://kubernetes.io/docs/user-guide/services
+##
+service:
+  type: ClusterIP
+  port: 6080
+
+## Ingress configuration.
+## ref: https://kubernetes.io/docs/user-guide/ingress/
+##
+ingress:
+  ## class provides an kubernetes.io/ingress.class override of default nginx
+  class: "nginx"
+
+  ## authURL override of default http://{.Release.Name}.{.Release.Namespace}.svc.cluster.local:8080/v1/auth
+  # authURL:
+
+  ## Annotations to be added to the ingress.
+  ##
+  annotations: []
+
+## Metrics configuration
+##
+metrics:
+  ## Prometheus configuration
+  prometheus:
+    ## prometheus.enabled determines whether the annotations for prometheus scraping are included
+    enabled: true
+
+## MongoDB configuration
+mongodb:
+  image:
+    ## Bitnami MongoDB image tag
+    ## ref: https://hub.docker.com/r/bitnami/mongodb/tags/
+    ## This value overrides the mongo image tag in chart v.4.5.0 (tag: 4.0.3-debian-9)
+    tag: 3.6.6-debian-9
+  ## Enables a local mongo chart
+  enabled: true
+  ## disable password for local dev mode
+  usePassword: false
+
+  ## Specify a custom mongo uri. Not needed when the local mongo is enabled.
+  ## Secret: {{ Release.Name }}-mongoconfig.mongo-uri
+  # uri:
+
+  ## name of secret to mount for mongo URI. The secret must have the `mongodb-uri` key
+  # uriSecretName:
+
+## Resources configuration
+## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+##
+# resources:
+#   limits:
+#     cpu: 200m
+#     memory: 256Mi
+#   requests:
+#     cpu: 200m
+#     memory: 512Mi
